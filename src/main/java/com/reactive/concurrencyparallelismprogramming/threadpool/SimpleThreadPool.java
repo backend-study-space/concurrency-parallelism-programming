@@ -12,7 +12,7 @@ public class SimpleThreadPool {
     private Thread[] threads;
     private volatile boolean isShutdown;
 
-    public SimpleThreadPool(int numThreads, Queue<Runnable> taskQueue, Thread[] threads, boolean isShutdown) {
+    public SimpleThreadPool(int numThreads) {
         this.numThreads = numThreads;
         this.taskQueue = new LinkedList<>();
         this.threads = new Thread[numThreads];
@@ -55,8 +55,20 @@ public class SimpleThreadPool {
             while(!isShutdown) {
                 Runnable task;
                 synchronized (taskQueue) {
-                    while(taskQueue.isEmpty() && !isShutdown)
+                    while(taskQueue.isEmpty() && !isShutdown) {
+                        try {
+                            taskQueue.wait();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                 }
+                if (!taskQueue.isEmpty()) {
+                    task = taskQueue.poll();
+                } else {
+                    continue;
+                }
+                task.run();
             }
         }
     }
